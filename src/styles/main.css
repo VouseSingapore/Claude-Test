@@ -204,6 +204,72 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 }
 .text-input:focus { border-color: var(--accent); }
 
+/* ── Variable panel ──────────────────────────────────────────────────────── */
+.sidebar-heading-row {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 10px;
+}
+.sidebar-heading-row .sidebar-heading { margin-bottom: 0; }
+
+.icon-btn-sm {
+  background: none; border: none; color: var(--text-muted);
+  font-size: 14px; cursor: pointer; padding: 2px 4px; border-radius: 4px;
+  line-height: 1; transition: color .15s;
+}
+.icon-btn-sm:hover { color: var(--text); }
+
+.var-list { display: flex; flex-direction: column; gap: 4px; }
+.var-list.collapsed { display: none; }
+
+.var-reset-all {
+  background: none; border: 1px solid var(--border); color: var(--text-muted);
+  border-radius: 5px; padding: 4px 8px; font-size: 11px; cursor: pointer;
+  margin-bottom: 4px; width: 100%; text-align: left;
+}
+.var-reset-all:hover { color: var(--text); border-color: var(--text-muted); }
+
+.var-row {
+  display: grid; grid-template-columns: 1fr auto auto;
+  align-items: center; gap: 6px;
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 6px; padding: 5px 8px;
+  transition: border-color .15s;
+}
+.var-row:hover { border-color: #444; }
+.var-row.overridden { border-color: var(--accent-dim); }
+
+.var-key {
+  font-size: 11px; color: var(--text-muted); font-family: monospace;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  min-width: 0;
+}
+.var-row.overridden .var-key { color: var(--accent); }
+
+.var-value {
+  font-size: 12px; color: var(--text); cursor: pointer;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  max-width: 100px; min-width: 0;
+  padding: 1px 4px; border-radius: 3px;
+  border: 1px solid transparent;
+  transition: background .15s, border-color .15s;
+}
+.var-value:hover { background: var(--bg2); border-color: var(--border); }
+
+.var-input {
+  font-size: 12px; background: var(--bg2); border: 1px solid var(--accent);
+  border-radius: 3px; color: var(--text); padding: 1px 4px;
+  outline: none; width: 100%; min-width: 60px;
+}
+
+.var-reset-btn {
+  background: none; border: none; color: var(--text-muted);
+  font-size: 13px; cursor: pointer; padding: 0 2px; line-height: 1;
+  flex-shrink: 0;
+}
+.var-reset-btn:hover { color: var(--accent); }
+
+.var-empty { font-size: 12px; color: var(--text-muted); font-style: italic; }
+
 /* ── Scrollbar ───────────────────────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }

@@ -18,6 +18,7 @@ const context: ChatContext = {
 
 let provider: Provider = 'claude'
 let model = 'claude-sonnet-4-6'
+const manualOverrides: Record<string, string> = {}
 
 // ── DOM refs ──────────────────────────────────────────────────────────────────
 
@@ -35,6 +36,8 @@ const selectProvider = document.getElementById('select-provider') as HTMLSelectE
 const selectModel = document.getElementById('select-model') as HTMLSelectElement
 const headerCharName = document.getElementById('header-char-name')!
 const toggleGroupsEl = document.getElementById('toggle-groups')!
+const varList = document.getElementById('var-list')!
+const btnVarsCollapse = document.getElementById('btn-vars-collapse')!
 
 // ── Preset ────────────────────────────────────────────────────────────────────
 
@@ -72,6 +75,7 @@ for (const group of toggleGroups) {
   select.addEventListener('change', () => {
     activeToggles.set(group.id, select.value)
     syncTogglesToPreset()
+    renderVariablePanel()
   })
 
   wrapper.appendChild(label)
@@ -95,6 +99,105 @@ function syncTogglesToPreset() {
 }
 
 syncTogglesToPreset()
+
+// ── Variable panel ────────────────────────────────────────────────────────
+
+let varsCollapsed = false
+
+function renderVariablePanel() {
+  const { variables: withOverrides } = assembleSystemPrompt(
+    preset, blockMap, context.characterId, context, manualOverrides
+  )
+  const { variables: baseline } = assembleSystemPrompt(
+    preset, blockMap, context.characterId, context
+  )
+
+  varList.innerHTML = ''
+
+  const entries = Object.entries(withOverrides)
+  if (entries.length === 0) {
+    const empty = document.createElement('div')
+    empty.className = 'var-empty'
+    empty.textContent = 'No variables set'
+    varList.appendChild(empty)
+    return
+  }
+
+  if (Object.keys(manualOverrides).length > 0) {
+    const resetAll = document.createElement('button')
+    resetAll.className = 'var-reset-all'
+    resetAll.textContent = '↺ Reset all overrides'
+    resetAll.addEventListener('click', () => {
+      for (const k of Object.keys(manualOverrides)) delete manualOverrides[k]
+      renderVariablePanel()
+    })
+    varList.appendChild(resetAll)
+  }
+
+  for (const [key, value] of entries) {
+    const isOverridden = key in manualOverrides
+    const row = document.createElement('div')
+    row.className = 'var-row' + (isOverridden ? ' overridden' : '')
+
+    const keyEl = document.createElement('span')
+    keyEl.className = 'var-key'
+    keyEl.textContent = key
+    keyEl.title = key
+
+    const valueEl = document.createElement('span')
+    valueEl.className = 'var-value'
+    valueEl.textContent = value
+    valueEl.title = 'Click to edit'
+
+    valueEl.addEventListener('click', () => {
+      const input = document.createElement('input')
+      input.className = 'var-input'
+      input.value = value
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') input.blur()
+        if (e.key === 'Escape') { input.replaceWith(valueEl); return }
+      })
+      input.addEventListener('blur', () => {
+        const newVal = input.value.trim()
+        if (newVal && newVal !== baseline[key]) {
+          manualOverrides[key] = newVal
+        } else {
+          delete manualOverrides[key]
+        }
+        renderVariablePanel()
+      })
+      valueEl.replaceWith(input)
+      input.focus()
+      input.select()
+    })
+
+    row.appendChild(keyEl)
+    row.appendChild(valueEl)
+
+    if (isOverridden) {
+      const resetBtn = document.createElement('button')
+      resetBtn.className = 'var-reset-btn'
+      resetBtn.textContent = '↺'
+      resetBtn.title = `Reset to preset value: "${baseline[key]}"`
+      resetBtn.addEventListener('click', (e) => {
+        e.stopPropagation()
+        delete manualOverrides[key]
+        renderVariablePanel()
+      })
+      row.appendChild(resetBtn)
+    }
+
+    varList.appendChild(row)
+  }
+}
+
+btnVarsCollapse.addEventListener('click', () => {
+  varsCollapsed = !varsCollapsed
+  varList.classList.toggle('collapsed', varsCollapsed)
+  btnVarsCollapse.textContent = varsCollapsed ? '▸' : '▾'
+})
+
+renderVariablePanel()
 
 // ── Character list ────────────────────────────────────────────────────────────
 
@@ -226,8 +329,8 @@ async function sendMessage() {
   messageList.appendChild(renderMessage(userMsg))
   scrollToBottom()
 
-  // Build system prompt
-  const { system } = assembleSystemPrompt(preset, blockMap, context.characterId, context)
+  // Build system prompt (applying any manual variable overrides)
+  const { system } = assembleSystemPrompt(preset, blockMap, context.characterId, context, manualOverrides)
 
   // Start streaming response
   isStreaming = true

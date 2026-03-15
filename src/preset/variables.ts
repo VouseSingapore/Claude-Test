@@ -2,11 +2,18 @@ import type { VariableStore, ChatContext } from '../types'
 
 export class VariableEngine {
   private store: VariableStore = {}
+  private pinned: VariableStore = {}
 
   constructor(private context: ChatContext) {}
 
   reset(): void {
     this.store = {}
+    this.pinned = {}
+  }
+
+  /** Pin overrides that cannot be overwritten by {{setvar}} macros. */
+  setOverrides(overrides: VariableStore): void {
+    this.pinned = { ...overrides }
   }
 
   set(key: string, value: string): void {
@@ -14,11 +21,11 @@ export class VariableEngine {
   }
 
   get(key: string): string {
-    return this.store[key] ?? ''
+    return this.pinned[key] ?? this.store[key] ?? ''
   }
 
   getAll(): Readonly<VariableStore> {
-    return { ...this.store }
+    return { ...this.store, ...this.pinned }
   }
 
   /**
@@ -26,11 +33,11 @@ export class VariableEngine {
    * Macros are evaluated left-to-right; setvar side-effects fire immediately.
    */
   process(text: string): string {
-    // First pass: fire all setvars and strip them
+    // First pass: fire all setvars and strip them (pinned overrides take priority)
     text = text.replace(
       /\{\{setvar::([a-zA-Z0-9_]+)::([\s\S]*?)\}\}/g,
       (_, key: string, value: string) => {
-        this.store[key] = value
+        if (!(key in this.pinned)) this.store[key] = value
         return ''
       }
     )

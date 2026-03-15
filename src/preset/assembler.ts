@@ -21,9 +21,11 @@ export function assembleSystemPrompt(
   preset: Preset,
   blockMap: Map<string, PresetBlock>,
   characterId: number,
-  context: ChatContext
+  context: ChatContext,
+  overrides: Record<string, string> = {}
 ): AssembledPrompt {
   const engine = new VariableEngine(context)
+  if (Object.keys(overrides).length) engine.setOverrides(overrides)
 
   const charOrder = preset.prompt_order.find(p => p.character_id === characterId)
   if (!charOrder) {
