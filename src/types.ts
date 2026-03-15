@@ -85,7 +85,7 @@ export interface Message {
 
 // ─── API ──────────────────────────────────────────────────────────────────────
 
-export type Provider = 'claude' | 'openai' | 'gemini' | 'openrouter'
+export type Provider = 'claude' | 'openai' | 'gemini' | 'openrouter' | 'mock'
 
 export interface ApiConfig {
   provider: Provider

@@ -4,6 +4,7 @@ import { streamClaude } from './claude.js'
 import { streamOpenAI } from './openai.js'
 import { streamGemini } from './gemini.js'
 import { streamOpenRouter } from './openrouter.js'
+import { streamMock } from './mock.js'
 
 const app = express()
 app.use(cors())
@@ -31,6 +32,8 @@ app.post('/api/chat', async (req, res) => {
       await streamGemini(opts, sendChunk)
     } else if (provider === 'openrouter') {
       await streamOpenRouter(opts, sendChunk)
+    } else if (provider === 'mock') {
+      await streamMock(opts, sendChunk)
     } else {
       res.status(400).end(`Unknown provider: ${provider}`)
       return

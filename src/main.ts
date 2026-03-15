@@ -28,8 +28,8 @@ const context: ChatContext = {
   characterId: 100001
 }
 
-let provider: Provider = 'claude'
-let model = 'claude-sonnet-4-6'
+let provider: Provider = 'mock'
+let model = 'mock'
 const runtimeVars: Record<string, string> = {}    // set by {{setvar}} in AI output
 const manualOverrides: Record<string, string> = {} // set by user in Variables panel
 const debugHistory: DebugEntry[] = []
@@ -255,6 +255,7 @@ for (const char of characters) {
 // ── Provider / model ──────────────────────────────────────────────────────────
 
 const FALLBACK_MODELS: Record<Provider, string[]> = {
+  mock: ['mock'],
   claude: ['claude-sonnet-4-6', 'claude-opus-4-6', 'claude-haiku-4-5-20251001'],
   openai: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo'],
   gemini: ['gemini-2.0-flash', 'gemini-2.0-flash-lite'],
@@ -266,6 +267,7 @@ const FALLBACK_MODELS: Record<Provider, string[]> = {
 }
 
 const KEY_STORAGE: Record<Provider, string> = {
+  mock: '',
   claude: 'claude_key',
   openai: 'openai_key',
   gemini: 'gemini_key',
@@ -284,6 +286,10 @@ function populateModelSelect(models: string[]) {
 }
 
 async function refreshModels(p: Provider) {
+  if (p === 'mock') {
+    populateModelSelect(FALLBACK_MODELS.mock)
+    return
+  }
   const apiKey = localStorage.getItem(KEY_STORAGE[p]) ?? ''
   if (!apiKey) {
     populateModelSelect(FALLBACK_MODELS[p])
