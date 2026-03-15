@@ -71,8 +71,8 @@ export function extractToggleGroups(preset: Preset): ToggleGroup[] {
   let currentGroup: ToggleGroup | null = null
 
   for (const block of preset.prompts) {
-    // Group header: names like "‒+ Group N — ..."
-    if (block.name.startsWith('‒+') || block.name.startsWith('━+')) {
+    // Group header: names like "‒+ Group N — ..." (thin dash, not section headers ━+)
+    if (block.name.startsWith('‒+')) {
       if (currentGroup) groups.push(currentGroup)
       currentGroup = {
         id: block.identifier,

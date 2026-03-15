@@ -61,10 +61,9 @@ export class VariableEngine {
       return match
     })
 
-    // Handle {{trim}}: everything after the last \x00TRIM\x00 marker is trimmed
+    // Handle {{trim}}: discard everything after the marker, keep what's before
     if (text.includes('\x00TRIM\x00')) {
-      const parts = text.split('\x00TRIM\x00')
-      text = parts[parts.length - 1].trimEnd()
+      text = text.split('\x00TRIM\x00')[0].trimEnd()
     }
 
     return text
