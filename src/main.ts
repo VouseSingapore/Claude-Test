@@ -2,8 +2,8 @@ import { loadPresetFromUrl } from './preset/loader'
 import { assembleSystemPrompt, extractToggleGroups } from './preset/assembler'
 import type { PromptSegment } from './preset/assembler'
 import { compileScripts, postProcess } from './preset/regex-processor'
-import { VariableEngine } from './preset/variables'
 import { streamChat } from './api/client'
+import { buildHistoryPayload, mergeVars, processAIResponse } from './chat/pipeline'
 import type { Message, ChatContext, Provider } from './types'
 
 interface DebugEntry {
@@ -497,7 +497,7 @@ async function sendMessage() {
   // (manualOverrides win over runtimeVars, both win over preset {{setvar}})
   const { system, segments: systemSegments } = assembleSystemPrompt(
     preset, blockMap, context.characterId, context,
-    { ...runtimeVars, ...manualOverrides }
+    mergeVars(runtimeVars, manualOverrides)
   )
 
   // Capture debug context (keep last 5)
@@ -533,7 +533,7 @@ async function sendMessage() {
       provider,
       model,
       system,
-      messages: messages.slice(0, -1).map(m => ({ role: m.role, content: m.content })),
+      messages: buildHistoryPayload(messages),
       temperature: preset.temperature,
       max_tokens: preset.openai_max_tokens,
       stream: true
@@ -552,14 +552,14 @@ async function sendMessage() {
     // Process the completed response through VariableEngine to:
     // 1. Extract any {{setvar::...}} macros the AI emitted → update runtimeVars
     // 2. Strip those macros (and expand {{getvar}}/{{char}}) from displayed text
+    // 3. Clear manual overrides for any key the AI just set, so AI values are not
+    //    permanently locked out by stale user edits
     if (assistantMsg.raw) {
-      const engine = new VariableEngine(context)
-      // Pre-seed with current runtime state so {{getvar}} in the response resolves
-      for (const [k, v] of Object.entries(runtimeVars)) engine.set(k, v)
-      const cleaned = engine.process(assistantMsg.raw)
-      // Merge newly set variables into runtimeVars
-      Object.assign(runtimeVars, engine.getAll())
-      // Re-run regex post-processing on the cleaned text
+      const { cleaned, updatedVars, newlySetKeys } = processAIResponse(
+        assistantMsg.raw, runtimeVars, context
+      )
+      Object.assign(runtimeVars, updatedVars)
+      for (const key of newlySetKeys) delete manualOverrides[key]
       assistantMsg.content = postProcess(cleaned, compiledScripts)
       bodyEl.textContent = assistantMsg.content
       renderVariablePanel()
