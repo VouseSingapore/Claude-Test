@@ -301,11 +301,10 @@ btnSaveKeys.addEventListener('click', () => {
   const openaiKey = (document.getElementById('input-openai-key') as HTMLInputElement).value
   const geminiKey = (document.getElementById('input-gemini-key') as HTMLInputElement).value
   const openrouterKey = (document.getElementById('input-openrouter-key') as HTMLInputElement).value
-  // Save non-empty values; allow clearing by saving empty string if field was shown
-  localStorage.setItem('claude_key', claudeKey)
-  localStorage.setItem('openai_key', openaiKey)
-  localStorage.setItem('gemini_key', geminiKey)
-  localStorage.setItem('openrouter_key', openrouterKey)
+  if (claudeKey) localStorage.setItem('claude_key', claudeKey)
+  if (openaiKey) localStorage.setItem('openai_key', openaiKey)
+  if (geminiKey) localStorage.setItem('gemini_key', geminiKey)
+  if (openrouterKey) localStorage.setItem('openrouter_key', openrouterKey)
   btnSaveKeys.textContent = 'Saved ✓'
   setTimeout(() => {
     btnSaveKeys.textContent = 'Save Keys'

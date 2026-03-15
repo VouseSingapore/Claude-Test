@@ -12,6 +12,8 @@ const OPENAI_API = 'https://api.openai.com/v1/chat/completions'
 export async function streamOpenAI(opts, sendChunk) {
   const { model, system, messages, temperature, max_tokens, apiKey } = opts
 
+  if (!apiKey) throw new Error('No OpenAI API key. Open Settings (⚙) to add your key.')
+
   const allMessages = [
     { role: 'system', content: system },
     ...messages

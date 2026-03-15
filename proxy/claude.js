@@ -12,6 +12,8 @@ const CLAUDE_API = 'https://api.anthropic.com/v1/messages'
 export async function streamClaude(opts, sendChunk) {
   const { model, system, messages, temperature, max_tokens, apiKey } = opts
 
+  if (!apiKey) throw new Error('No Anthropic API key. Open Settings (⚙) to add your key.')
+
   const res = await fetch(CLAUDE_API, {
     method: 'POST',
     headers: {

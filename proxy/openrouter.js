@@ -14,6 +14,8 @@ const OPENROUTER_API = 'https://openrouter.ai/api/v1/chat/completions'
 export async function streamOpenRouter(opts, sendChunk) {
   const { model, system, messages, temperature, max_tokens, apiKey } = opts
 
+  if (!apiKey) throw new Error('No OpenRouter API key. Open Settings (⚙) to add your key.')
+
   const allMessages = [
     { role: 'system', content: system },
     ...messages

@@ -12,6 +12,8 @@ const BASE_URL = 'https://generativelanguage.googleapis.com/v1beta'
 export async function streamGemini(opts, sendChunk) {
   const { model, system, messages, temperature, max_tokens, apiKey } = opts
 
+  if (!apiKey) throw new Error('No Gemini API key. Open Settings (⚙) to add your key.')
+
   // Gemini uses 'model' role instead of 'assistant'
   const contents = messages.map(m => ({
     role: m.role === 'assistant' ? 'model' : 'user',
