@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0f0f0f" />
+  <link rel="manifest" href="/manifest.json" />
+  <title>Purpose Chat</title>
+  <link rel="stylesheet" href="/src/styles/main.css" />
+</head>
+<body>
+
+  <div id="app">
+
+    <!-- ── Mobile header ─────────────────────────────────── -->
+    <header class="app-header">
+      <button id="btn-sidebar" class="icon-btn" aria-label="Characters">☰</button>
+      <span id="header-char-name" class="header-title">Purpose Chat</span>
+      <button id="btn-settings" class="icon-btn" aria-label="Settings">⚙</button>
+    </header>
+
+    <!-- ── Layout ─────────────────────────────────────────── -->
+    <div class="layout">
+
+      <!-- Sidebar: character list + toggle groups -->
+      <aside id="sidebar" class="sidebar" aria-label="Characters and settings">
+        <section class="sidebar-section">
+          <h2 class="sidebar-heading">Character</h2>
+          <div id="character-list" class="character-list"></div>
+        </section>
+
+        <section class="sidebar-section">
+          <h2 class="sidebar-heading">Style</h2>
+          <div id="toggle-groups" class="toggle-groups"></div>
+        </section>
+
+        <section class="sidebar-section">
+          <h2 class="sidebar-heading">Provider</h2>
+          <select id="select-provider" class="select">
+            <option value="claude">Claude (Anthropic)</option>
+            <option value="openai">OpenAI</option>
+          </select>
+          <select id="select-model" class="select" style="margin-top:6px"></select>
+        </section>
+      </aside>
+
+      <!-- Main chat area -->
+      <main class="chat-main">
+        <div id="message-list" class="message-list" role="log" aria-live="polite"></div>
+
+        <div class="input-bar">
+          <textarea
+            id="user-input"
+            class="input-textarea"
+            placeholder="What do you do?"
+            rows="1"
+            aria-label="Message input"
+          ></textarea>
+          <button id="btn-send" class="send-btn" aria-label="Send">
+            <span id="send-icon">▶</span>
+          </button>
+        </div>
+      </main>
+
+    </div>
+
+    <!-- Settings drawer (API keys etc.) -->
+    <div id="settings-drawer" class="drawer" hidden>
+      <div class="drawer-content">
+        <h2>Settings</h2>
+        <label class="field-label">
+          Anthropic API Key
+          <input id="input-claude-key" type="password" class="text-input" placeholder="sk-ant-..." />
+        </label>
+        <label class="field-label">
+          OpenAI API Key
+          <input id="input-openai-key" type="password" class="text-input" placeholder="sk-..." />
+        </label>
+        <button id="btn-save-keys" class="primary-btn">Save Keys</button>
+        <button id="btn-close-settings" class="ghost-btn">Close</button>
+      </div>
+    </div>
+    <div id="drawer-backdrop" class="drawer-backdrop" hidden></div>
+
+  </div>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
