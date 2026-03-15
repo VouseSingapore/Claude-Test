@@ -16,6 +16,7 @@
     <header class="app-header">
       <button id="btn-sidebar" class="icon-btn" aria-label="Characters">☰</button>
       <span id="header-char-name" class="header-title">Purpose Chat</span>
+      <button id="btn-debug" class="icon-btn" aria-label="Debug context" title="Context debug">⬛</button>
       <button id="btn-settings" class="icon-btn" aria-label="Settings">⚙</button>
     </header>
 
@@ -99,6 +100,17 @@
       </div>
     </div>
     <div id="drawer-backdrop" class="drawer-backdrop" hidden></div>
+
+    <!-- Debug context drawer -->
+    <div id="debug-drawer" class="debug-drawer" hidden>
+      <div class="debug-drawer-inner">
+        <div class="debug-drawer-hdr">
+          <span class="debug-drawer-title">Context Debug <span class="debug-drawer-sub">(last 5 requests)</span></span>
+          <button id="btn-close-debug" class="icon-btn">✕</button>
+        </div>
+        <div id="debug-content" class="debug-content"></div>
+      </div>
+    </div>
 
   </div>
 

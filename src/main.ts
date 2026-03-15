@@ -1,9 +1,20 @@
 import { loadPresetFromUrl } from './preset/loader'
 import { assembleSystemPrompt, extractToggleGroups } from './preset/assembler'
+import type { PromptSegment } from './preset/assembler'
 import { compileScripts, postProcess } from './preset/regex-processor'
 import { VariableEngine } from './preset/variables'
 import { streamChat } from './api/client'
 import type { Message, ChatContext, Provider } from './types'
+
+interface DebugEntry {
+  id: string
+  timestamp: number
+  provider: string
+  model: string
+  systemSegments: PromptSegment[]
+  history: Array<{ role: string; content: string }>
+  userMessage: string
+}
 
 // ── State ─────────────────────────────────────────────────────────────────────
 
@@ -21,6 +32,7 @@ let provider: Provider = 'claude'
 let model = 'claude-sonnet-4-6'
 const runtimeVars: Record<string, string> = {}    // set by {{setvar}} in AI output
 const manualOverrides: Record<string, string> = {} // set by user in Variables panel
+const debugHistory: DebugEntry[] = []
 
 // ── DOM refs ──────────────────────────────────────────────────────────────────
 
@@ -40,6 +52,10 @@ const headerCharName = document.getElementById('header-char-name')!
 const toggleGroupsEl = document.getElementById('toggle-groups')!
 const varList = document.getElementById('var-list')!
 const btnVarsCollapse = document.getElementById('btn-vars-collapse')!
+const btnDebug = document.getElementById('btn-debug')!
+const debugDrawer = document.getElementById('debug-drawer')!
+const btnCloseDebug = document.getElementById('btn-close-debug')!
+const debugContent = document.getElementById('debug-content')!
 
 // ── Preset ────────────────────────────────────────────────────────────────────
 
@@ -115,8 +131,8 @@ function renderVariablePanel() {
     preset, blockMap, context.characterId, context
   )
 
-  // Merge in any runtimeVars keys not in the assembled output
-  const entries = Object.entries({ ...allVars, ...runtimeVars })
+  // runtimeVars fills keys absent from preset; allVars (with overrides applied) wins
+  const entries = Object.entries({ ...runtimeVars, ...allVars })
 
   varList.innerHTML = ''
 
@@ -347,10 +363,20 @@ async function sendMessage() {
 
   // Build system prompt: runtimeVars from AI output merged with user overrides
   // (manualOverrides win over runtimeVars, both win over preset {{setvar}})
-  const { system } = assembleSystemPrompt(
+  const { system, segments: systemSegments } = assembleSystemPrompt(
     preset, blockMap, context.characterId, context,
     { ...runtimeVars, ...manualOverrides }
   )
+
+  // Capture debug context (keep last 5)
+  const historySnapshot = messages.slice(0, -1).map(m => ({ role: m.role, content: m.content }))
+  debugHistory.unshift({
+    id: crypto.randomUUID(), timestamp: Date.now(),
+    provider, model, systemSegments,
+    history: historySnapshot.slice(0, -1),
+    userMessage: text
+  })
+  if (debugHistory.length > 5) debugHistory.pop()
 
   // Start streaming response
   isStreaming = true
@@ -413,6 +439,97 @@ async function sendMessage() {
     abortController = null
   }
 }
+
+// ── Debug panel ───────────────────────────────────────────────────────────────
+
+function tok(text: string) { return Math.ceil(text.length / 4) }
+
+function renderDebugPanel() {
+  debugContent.innerHTML = ''
+
+  if (debugHistory.length === 0) {
+    debugContent.innerHTML = '<p class="debug-empty">No requests yet. Send a message first.</p>'
+    return
+  }
+
+  for (const entry of debugHistory) {
+    const systemTotal = entry.systemSegments.reduce((s, seg) => s + tok(seg.content), 0)
+    const histTotal   = entry.history.reduce((s, m) => s + tok(m.content), 0)
+    const userTok     = tok(entry.userMessage)
+    const grandTotal  = systemTotal + histTotal + userTok
+
+    const card = document.createElement('details')
+    card.className = 'debug-card'
+
+    const summary = document.createElement('summary')
+    summary.className = 'debug-summary'
+    summary.innerHTML = `
+      <span class="debug-meta">${new Date(entry.timestamp).toLocaleTimeString()} · ${entry.provider}/${entry.model}</span>
+      <span class="debug-total">~${grandTotal.toLocaleString()} tok</span>`
+    card.appendChild(summary)
+
+    // ── System prompt segments ────────────────────────────────────────
+    const sysSection = mkSection('System Prompt', `~${systemTotal.toLocaleString()} tok`)
+    for (const seg of entry.systemSegments) {
+      const row = document.createElement('div')
+      row.className = 'debug-seg-row'
+      row.innerHTML = `<span class="debug-seg-name">${seg.name}</span><span class="debug-seg-tok">~${tok(seg.content)} tok</span>`
+      row.title = seg.content
+      const preview = document.createElement('div')
+      preview.className = 'debug-seg-preview'
+      preview.textContent = seg.content.slice(0, 120) + (seg.content.length > 120 ? '…' : '')
+      row.appendChild(preview)
+      sysSection.appendChild(row)
+    }
+    card.appendChild(sysSection)
+
+    // ── History messages ──────────────────────────────────────────────
+    if (entry.history.length > 0) {
+      const histSection = mkSection(`History (${entry.history.length} msg)`, `~${histTotal.toLocaleString()} tok`)
+      for (const m of entry.history) {
+        const row = document.createElement('div')
+        row.className = 'debug-seg-row'
+        row.innerHTML = `<span class="debug-seg-name debug-role-${m.role}">${m.role}</span><span class="debug-seg-tok">~${tok(m.content)} tok</span>`
+        const preview = document.createElement('div')
+        preview.className = 'debug-seg-preview'
+        preview.textContent = m.content.slice(0, 100) + (m.content.length > 100 ? '…' : '')
+        row.appendChild(preview)
+        histSection.appendChild(row)
+      }
+      card.appendChild(histSection)
+    }
+
+    // ── Current user message ──────────────────────────────────────────
+    const userSection = mkSection('User Message', `~${userTok} tok`)
+    const userRow = document.createElement('div')
+    userRow.className = 'debug-seg-row'
+    userRow.innerHTML = `<span class="debug-seg-name debug-role-user">user</span><span class="debug-seg-tok">~${userTok} tok</span>`
+    const userPreview = document.createElement('div')
+    userPreview.className = 'debug-seg-preview'
+    userPreview.textContent = entry.userMessage.slice(0, 100) + (entry.userMessage.length > 100 ? '…' : '')
+    userRow.appendChild(userPreview)
+    userSection.appendChild(userRow)
+    card.appendChild(userSection)
+
+    debugContent.appendChild(card)
+  }
+}
+
+function mkSection(title: string, tokLabel: string): HTMLElement {
+  const el = document.createElement('div')
+  el.className = 'debug-section'
+  const h = document.createElement('div')
+  h.className = 'debug-section-hdr'
+  h.innerHTML = `<span>${title}</span><span class="debug-seg-tok">${tokLabel}</span>`
+  el.appendChild(h)
+  return el
+}
+
+btnDebug.addEventListener('click', () => {
+  renderDebugPanel()
+  debugDrawer.hidden = false
+})
+btnCloseDebug.addEventListener('click', () => { debugDrawer.hidden = true })
 
 // ── Input events ──────────────────────────────────────────────────────────────
 

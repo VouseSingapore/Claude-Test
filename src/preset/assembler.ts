@@ -1,9 +1,16 @@
 import type { Preset, PresetBlock, ChatContext } from '../types'
 import { VariableEngine } from './variables'
 
+export interface PromptSegment {
+  id: string
+  name: string
+  content: string
+}
+
 export interface AssembledPrompt {
   system: string
   variables: Record<string, string>
+  segments: PromptSegment[]
 }
 
 /**
@@ -33,6 +40,7 @@ export function assembleSystemPrompt(
   }
 
   const parts: string[] = []
+  const segments: PromptSegment[] = []
 
   for (const entry of charOrder.order) {
     if (!entry.enabled) continue
@@ -49,12 +57,16 @@ export function assembleSystemPrompt(
     const processed = engine.process(block.content)
     const trimmed = processed.trim()
 
-    if (trimmed) parts.push(trimmed)
+    if (trimmed) {
+      parts.push(trimmed)
+      segments.push({ id: entry.identifier, name: block.name, content: trimmed })
+    }
   }
 
   return {
     system: parts.join('\n\n'),
-    variables: engine.getAll() as Record<string, string>
+    variables: engine.getAll() as Record<string, string>,
+    segments
   }
 }
 
