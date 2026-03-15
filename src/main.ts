@@ -119,40 +119,69 @@ for (const char of characters) {
 
 // ── Provider / model ──────────────────────────────────────────────────────────
 
-const MODELS: Record<Provider, string[]> = {
+const FALLBACK_MODELS: Record<Provider, string[]> = {
   claude: ['claude-sonnet-4-6', 'claude-opus-4-6', 'claude-haiku-4-5-20251001'],
   openai: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo'],
-  gemini: ['gemini-2.0-flash', 'gemini-2.0-flash-lite', 'gemini-2.5-pro-preview-03-25'],
+  gemini: ['gemini-2.0-flash', 'gemini-2.0-flash-lite'],
   openrouter: [
     'mistralai/mistral-nemo',
     'meta-llama/llama-3.3-70b-instruct',
-    'deepseek/deepseek-r1',
-    'google/gemini-2.0-flash-001',
-    'anthropic/claude-sonnet-4-6'
+    'deepseek/deepseek-r1'
   ]
 }
 
-function updateModelOptions() {
+const KEY_STORAGE: Record<Provider, string> = {
+  claude: 'claude_key',
+  openai: 'openai_key',
+  gemini: 'gemini_key',
+  openrouter: 'openrouter_key'
+}
+
+function populateModelSelect(models: string[]) {
   selectModel.innerHTML = ''
-  for (const m of MODELS[provider]) {
+  for (const m of models) {
     const opt = document.createElement('option')
     opt.value = m
     opt.textContent = m
     selectModel.appendChild(opt)
   }
-  model = MODELS[provider][0]
+  model = models[0] ?? ''
+}
+
+async function refreshModels(p: Provider) {
+  const apiKey = localStorage.getItem(KEY_STORAGE[p]) ?? ''
+  if (!apiKey) {
+    populateModelSelect(FALLBACK_MODELS[p])
+    return
+  }
+  try {
+    selectModel.disabled = true
+    selectModel.innerHTML = '<option>Loading…</option>'
+    const res = await fetch(`/api/models?provider=${p}&apiKey=${encodeURIComponent(apiKey)}`)
+    const data = await res.json()
+    if (data.models?.length) {
+      populateModelSelect(data.models)
+    } else {
+      populateModelSelect(FALLBACK_MODELS[p])
+    }
+  } catch {
+    populateModelSelect(FALLBACK_MODELS[p])
+  } finally {
+    selectModel.disabled = false
+    model = selectModel.value
+  }
 }
 
 selectProvider.addEventListener('change', () => {
   provider = selectProvider.value as Provider
-  updateModelOptions()
+  refreshModels(provider)
 })
 
 selectModel.addEventListener('change', () => {
   model = selectModel.value
 })
 
-updateModelOptions()
+refreshModels(provider)
 
 // ── Chat ──────────────────────────────────────────────────────────────────────
 
@@ -309,5 +338,6 @@ btnSaveKeys.addEventListener('click', () => {
   setTimeout(() => {
     btnSaveKeys.textContent = 'Save Keys'
     closeSettings()
+    refreshModels(provider)
   }, 800)
 })

@@ -44,4 +44,61 @@ app.post('/api/chat', async (req, res) => {
   }
 })
 
+app.get('/api/models', async (req, res) => {
+  const { provider, apiKey } = req.query
+  if (!apiKey) return res.status(400).json({ error: 'apiKey required' })
+
+  try {
+    let models = []
+
+    if (provider === 'claude') {
+      const r = await fetch('https://api.anthropic.com/v1/models', {
+        headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' }
+      })
+      if (!r.ok) throw new Error(`Anthropic ${r.status}`)
+      const data = await r.json()
+      models = data.data.map(m => m.id).filter(id => id.startsWith('claude-'))
+
+    } else if (provider === 'openai') {
+      const r = await fetch('https://api.openai.com/v1/models', {
+        headers: { 'Authorization': `Bearer ${apiKey}` }
+      })
+      if (!r.ok) throw new Error(`OpenAI ${r.status}`)
+      const data = await r.json()
+      models = data.data
+        .map(m => m.id)
+        .filter(id => id.startsWith('gpt-') || id.startsWith('o1') || id.startsWith('o3'))
+        .sort()
+
+    } else if (provider === 'gemini') {
+      const r = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}&pageSize=100`
+      )
+      if (!r.ok) throw new Error(`Gemini ${r.status}`)
+      const data = await r.json()
+      models = data.models
+        .filter(m => m.supportedGenerationMethods?.includes('generateContent'))
+        .map(m => m.name.replace('models/', ''))
+        .filter(id => id.startsWith('gemini-'))
+        .sort()
+
+    } else if (provider === 'openrouter') {
+      const r = await fetch('https://openrouter.ai/api/v1/models', {
+        headers: { 'Authorization': `Bearer ${apiKey}` }
+      })
+      if (!r.ok) throw new Error(`OpenRouter ${r.status}`)
+      const data = await r.json()
+      models = data.data.map(m => m.id).sort()
+
+    } else {
+      return res.status(400).json({ error: `Unknown provider: ${provider}` })
+    }
+
+    res.json({ models })
+  } catch (err) {
+    console.error('[models error]', err)
+    res.status(500).json({ error: err.message })
+  }
+})
+
 app.listen(PORT, () => console.log(`Proxy running on http://localhost:${PORT}`))
