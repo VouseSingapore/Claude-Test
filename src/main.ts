@@ -33,6 +33,8 @@ let model = 'mock'
 const runtimeVars: Record<string, string> = {}    // set by {{setvar}} in AI output
 const manualOverrides: Record<string, string> = {} // set by user in Variables panel
 const debugHistory: DebugEntry[] = []
+// originalBlockContent captured at load — used to detect edits and allow reset
+const originalBlockContent = new Map<string, string>()
 
 // ── DOM refs ──────────────────────────────────────────────────────────────────
 
@@ -52,6 +54,8 @@ const headerCharName = document.getElementById('header-char-name')!
 const toggleGroupsEl = document.getElementById('toggle-groups')!
 const varList = document.getElementById('var-list')!
 const btnVarsCollapse = document.getElementById('btn-vars-collapse')!
+const presetBlockList = document.getElementById('preset-block-list')!
+const btnPresetCollapse = document.getElementById('btn-preset-collapse')!
 const btnDebug = document.getElementById('btn-debug')!
 const debugDrawer = document.getElementById('debug-drawer')!
 const btnCloseDebug = document.getElementById('btn-close-debug')!
@@ -62,6 +66,11 @@ const debugContent = document.getElementById('debug-content')!
 const { preset, blockMap } = await loadPresetFromUrl('/Preset/Purpose_v50.json')
 const compiledScripts = compileScripts(preset.extensions.regex_scripts)
 const toggleGroups = extractToggleGroups(preset)
+
+// Capture original block content for reset support
+for (const block of preset.prompts) {
+  originalBlockContent.set(block.identifier, block.content ?? '')
+}
 
 // Track which toggle option is active per group
 const activeToggles = new Map<string, string>()
@@ -117,6 +126,123 @@ function syncTogglesToPreset() {
 }
 
 syncTogglesToPreset()
+
+// ── Preset block panel ────────────────────────────────────────────────────
+
+let presetCollapsed = false
+const expandedBlocks = new Set<string>()        // identifiers with open textarea
+const allToggleOptionIds = new Set(toggleGroups.flatMap(g => g.options.map(o => o.id)))
+
+function renderPresetPanel() {
+  presetBlockList.innerHTML = ''
+  if (presetCollapsed) return
+
+  const charOrder = preset.prompt_order.find(p => p.character_id === context.characterId)
+  if (!charOrder) return
+
+  for (const entry of charOrder.order) {
+    const block = blockMap.get(entry.identifier)
+    if (!block || block.marker) continue   // skip structural markers
+
+    const isManaged = allToggleOptionIds.has(entry.identifier)
+    const isModified = (block.content ?? '') !== (originalBlockContent.get(entry.identifier) ?? '')
+    const isExpanded = expandedBlocks.has(entry.identifier)
+    const tokCount = Math.ceil((block.content ?? '').length / 4)
+
+    const row = document.createElement('div')
+    row.className = 'pb-row' + (entry.enabled ? '' : ' pb-disabled') + (isExpanded ? ' pb-expanded' : '')
+
+    // ── Checkbox / lock ──────────────────────────────────────────────
+    if (isManaged) {
+      const lock = document.createElement('span')
+      lock.className = 'pb-lock'
+      lock.title = 'Controlled by Style dropdown'
+      lock.textContent = '🔒'
+      row.appendChild(lock)
+    } else {
+      const cb = document.createElement('input')
+      cb.type = 'checkbox'
+      cb.className = 'pb-cb'
+      cb.checked = entry.enabled
+      cb.addEventListener('change', () => {
+        entry.enabled = cb.checked
+        row.classList.toggle('pb-disabled', !cb.checked)
+        renderVariablePanel()
+      })
+      row.appendChild(cb)
+    }
+
+    // ── Name + modified dot ──────────────────────────────────────────
+    const nameWrap = document.createElement('button')
+    nameWrap.className = 'pb-name' + (isModified ? ' pb-modified' : '')
+    nameWrap.title = isModified ? 'Content modified — click to view/edit' : 'Click to edit content'
+    nameWrap.textContent = block.name
+    if (isModified) {
+      const dot = document.createElement('span')
+      dot.className = 'pb-dot'
+      nameWrap.appendChild(dot)
+    }
+    nameWrap.addEventListener('click', () => {
+      if (expandedBlocks.has(entry.identifier)) {
+        expandedBlocks.delete(entry.identifier)
+      } else {
+        expandedBlocks.add(entry.identifier)
+      }
+      renderPresetPanel()
+    })
+    row.appendChild(nameWrap)
+
+    // ── Token count ──────────────────────────────────────────────────
+    const tokEl = document.createElement('span')
+    tokEl.className = 'pb-tok'
+    tokEl.textContent = `~${tokCount}`
+    row.appendChild(tokEl)
+
+    presetBlockList.appendChild(row)
+
+    // ── Inline editor (when expanded) ───────────────────────────────
+    if (isExpanded) {
+      const editor = document.createElement('div')
+      editor.className = 'pb-editor'
+
+      const ta = document.createElement('textarea')
+      ta.className = 'pb-textarea'
+      ta.value = block.content ?? ''
+      ta.rows = Math.min(Math.max(4, (block.content ?? '').split('\n').length + 1), 18)
+      ta.addEventListener('input', () => {
+        ta.rows = Math.min(Math.max(4, ta.value.split('\n').length + 1), 18)
+      })
+      ta.addEventListener('blur', () => {
+        block.content = ta.value
+        renderPresetPanel()
+        renderVariablePanel()
+      })
+      editor.appendChild(ta)
+
+      if (isModified) {
+        const resetBtn = document.createElement('button')
+        resetBtn.className = 'pb-reset'
+        resetBtn.textContent = '↺ Reset to original'
+        resetBtn.addEventListener('click', () => {
+          block.content = originalBlockContent.get(entry.identifier) ?? ''
+          renderPresetPanel()
+          renderVariablePanel()
+        })
+        editor.appendChild(resetBtn)
+      }
+
+      presetBlockList.appendChild(editor)
+    }
+  }
+}
+
+btnPresetCollapse.addEventListener('click', () => {
+  presetCollapsed = !presetCollapsed
+  btnPresetCollapse.textContent = presetCollapsed ? '▸' : '▾'
+  renderPresetPanel()
+})
+
+renderPresetPanel()
 
 // ── Variable panel ────────────────────────────────────────────────────────
 
