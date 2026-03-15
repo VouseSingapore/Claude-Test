@@ -1,6 +1,7 @@
 import { loadPresetFromUrl } from './preset/loader'
 import { assembleSystemPrompt, extractToggleGroups } from './preset/assembler'
 import { compileScripts, postProcess } from './preset/regex-processor'
+import { VariableEngine } from './preset/variables'
 import { streamChat } from './api/client'
 import type { Message, ChatContext, Provider } from './types'
 
@@ -18,7 +19,8 @@ const context: ChatContext = {
 
 let provider: Provider = 'claude'
 let model = 'claude-sonnet-4-6'
-const manualOverrides: Record<string, string> = {}
+const runtimeVars: Record<string, string> = {}    // set by {{setvar}} in AI output
+const manualOverrides: Record<string, string> = {} // set by user in Variables panel
 
 // ── DOM refs ──────────────────────────────────────────────────────────────────
 
@@ -105,16 +107,19 @@ syncTogglesToPreset()
 let varsCollapsed = false
 
 function renderVariablePanel() {
-  const { variables: withOverrides } = assembleSystemPrompt(
-    preset, blockMap, context.characterId, context, manualOverrides
+  const effectiveOverrides = { ...runtimeVars, ...manualOverrides }
+  const { variables: allVars } = assembleSystemPrompt(
+    preset, blockMap, context.characterId, context, effectiveOverrides
   )
   const { variables: baseline } = assembleSystemPrompt(
     preset, blockMap, context.characterId, context
   )
 
+  // Merge in any runtimeVars keys not in the assembled output
+  const entries = Object.entries({ ...allVars, ...runtimeVars })
+
   varList.innerHTML = ''
 
-  const entries = Object.entries(withOverrides)
   if (entries.length === 0) {
     const empty = document.createElement('div')
     empty.className = 'var-empty'
@@ -135,14 +140,20 @@ function renderVariablePanel() {
   }
 
   for (const [key, value] of entries) {
-    const isOverridden = key in manualOverrides
+    const isManual = key in manualOverrides
+    const isRuntime = !isManual && key in runtimeVars
+    const rowClass = isManual ? ' overridden' : isRuntime ? ' runtime' : ''
     const row = document.createElement('div')
-    row.className = 'var-row' + (isOverridden ? ' overridden' : '')
+    row.className = 'var-row' + rowClass
 
     const keyEl = document.createElement('span')
     keyEl.className = 'var-key'
     keyEl.textContent = key
     keyEl.title = key
+
+    const badge = document.createElement('span')
+    badge.className = 'var-badge'
+    badge.textContent = isManual ? 'user' : isRuntime ? 'AI' : 'preset'
 
     const valueEl = document.createElement('span')
     valueEl.className = 'var-value'
@@ -159,7 +170,8 @@ function renderVariablePanel() {
       })
       input.addEventListener('blur', () => {
         const newVal = input.value.trim()
-        if (newVal && newVal !== baseline[key]) {
+        const presetVal = baseline[key] ?? runtimeVars[key] ?? ''
+        if (newVal && newVal !== presetVal) {
           manualOverrides[key] = newVal
         } else {
           delete manualOverrides[key]
@@ -172,16 +184,20 @@ function renderVariablePanel() {
     })
 
     row.appendChild(keyEl)
+    row.appendChild(badge)
     row.appendChild(valueEl)
 
-    if (isOverridden) {
+    if (isManual || isRuntime) {
       const resetBtn = document.createElement('button')
       resetBtn.className = 'var-reset-btn'
       resetBtn.textContent = '↺'
-      resetBtn.title = `Reset to preset value: "${baseline[key]}"`
+      resetBtn.title = isManual
+        ? `Reset to ${key in runtimeVars ? 'AI value' : 'preset value'}: "${runtimeVars[key] ?? baseline[key]}"`
+        : `Clear AI value for "${key}"`
       resetBtn.addEventListener('click', (e) => {
         e.stopPropagation()
-        delete manualOverrides[key]
+        if (isManual) delete manualOverrides[key]
+        else delete runtimeVars[key]
         renderVariablePanel()
       })
       row.appendChild(resetBtn)
@@ -329,8 +345,12 @@ async function sendMessage() {
   messageList.appendChild(renderMessage(userMsg))
   scrollToBottom()
 
-  // Build system prompt (applying any manual variable overrides)
-  const { system } = assembleSystemPrompt(preset, blockMap, context.characterId, context, manualOverrides)
+  // Build system prompt: runtimeVars from AI output merged with user overrides
+  // (manualOverrides win over runtimeVars, both win over preset {{setvar}})
+  const { system } = assembleSystemPrompt(
+    preset, blockMap, context.characterId, context,
+    { ...runtimeVars, ...manualOverrides }
+  )
 
   // Start streaming response
   isStreaming = true
@@ -371,6 +391,22 @@ async function sendMessage() {
       bodyEl.textContent = `[Error: ${err.message}]`
     }
   } finally {
+    // Process the completed response through VariableEngine to:
+    // 1. Extract any {{setvar::...}} macros the AI emitted → update runtimeVars
+    // 2. Strip those macros (and expand {{getvar}}/{{char}}) from displayed text
+    if (assistantMsg.raw) {
+      const engine = new VariableEngine(context)
+      // Pre-seed with current runtime state so {{getvar}} in the response resolves
+      for (const [k, v] of Object.entries(runtimeVars)) engine.set(k, v)
+      const cleaned = engine.process(assistantMsg.raw)
+      // Merge newly set variables into runtimeVars
+      Object.assign(runtimeVars, engine.getAll())
+      // Re-run regex post-processing on the cleaned text
+      assistantMsg.content = postProcess(cleaned, compiledScripts)
+      bodyEl.textContent = assistantMsg.content
+      renderVariablePanel()
+    }
+
     assistantEl.classList.remove('streaming')
     isStreaming = false
     btnSend.disabled = false
