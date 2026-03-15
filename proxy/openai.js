@@ -1,5 +1,4 @@
 const OPENAI_API = 'https://api.openai.com/v1/chat/completions'
-const API_KEY = process.env.OPENAI_API_KEY ?? ''
 
 /**
  * @param {object} opts
@@ -22,7 +21,7 @@ export async function streamOpenAI(opts, sendChunk) {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey || API_KEY}`
+      'Authorization': `Bearer ${apiKey}`
     },
     body: JSON.stringify({
       model: model ?? 'gpt-4o',

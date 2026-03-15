@@ -1,5 +1,4 @@
 const CLAUDE_API = 'https://api.anthropic.com/v1/messages'
-const API_KEY = process.env.ANTHROPIC_API_KEY ?? ''
 
 /**
  * @param {object} opts
@@ -17,7 +16,7 @@ export async function streamClaude(opts, sendChunk) {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-api-key': apiKey || API_KEY,
+      'x-api-key': apiKey,
       'anthropic-version': '2023-06-01'
     },
     body: JSON.stringify({

@@ -22,12 +22,13 @@ npx vitest run tests/unit/variables.test.ts
 ## Environment
 
 ```
-ANTHROPIC_API_KEY=   # Required for Claude provider + eval runner
-OPENAI_API_KEY=      # Required for OpenAI provider
-GEMINI_API_KEY=      # Required for Gemini provider
-OPENROUTER_API_KEY=  # Required for OpenRouter provider
-PORT=3001            # Proxy server port (default)
+PORT=3001  # Proxy server port (default)
+ANTHROPIC_API_KEY=  # Only needed for eval runner (npm run eval), not the app
 ```
+
+Provider API keys (Claude, OpenAI, Gemini, OpenRouter) are entered in the app's Settings
+drawer (⚙) and stored in `localStorage`. They are forwarded to the proxy per-request — do
+not put them in `.env`.
 
 ## Architecture
 
@@ -59,7 +60,7 @@ tests/
 
 ## Key Design Decisions
 
-**Proxy pattern**: API keys never reach the browser. All provider calls go through the Express proxy which reads keys from environment variables.
+**Proxy pattern**: API keys are entered in the browser UI, stored in `localStorage`, and forwarded to the local Express proxy per-request. The proxy never stores keys — it only relays them to the upstream provider API.
 
 **Variable engine order**: `{{setvar}}` macros are stripped in a first pass (left-to-right), then `{{getvar}}` and other macros expand in a second pass. This means setvar fires before getvar in the same string.
 

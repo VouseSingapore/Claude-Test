@@ -1,5 +1,4 @@
 const OPENROUTER_API = 'https://openrouter.ai/api/v1/chat/completions'
-const API_KEY = process.env.OPENROUTER_API_KEY ?? ''
 
 /**
  * OpenRouter uses an OpenAI-compatible API, so this is a thin wrapper.
@@ -24,7 +23,7 @@ export async function streamOpenRouter(opts, sendChunk) {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey || API_KEY}`,
+      'Authorization': `Bearer ${apiKey}`,
       'HTTP-Referer': 'http://localhost:5173',
       'X-Title': 'Purpose Chat'
     },

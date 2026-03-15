@@ -1,4 +1,3 @@
-const API_KEY = process.env.GEMINI_API_KEY ?? ''
 const BASE_URL = 'https://generativelanguage.googleapis.com/v1beta'
 
 /**
@@ -29,7 +28,7 @@ export async function streamGemini(opts, sendChunk) {
   }
 
   const modelId = model ?? 'gemini-2.0-flash'
-  const url = `${BASE_URL}/models/${modelId}:streamGenerateContent?alt=sse&key=${apiKey || API_KEY}`
+  const url = `${BASE_URL}/models/${modelId}:streamGenerateContent?alt=sse&key=${apiKey}`
 
   const res = await fetch(url, {
     method: 'POST',
