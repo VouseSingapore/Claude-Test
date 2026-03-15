@@ -22,9 +22,11 @@ npx vitest run tests/unit/variables.test.ts
 ## Environment
 
 ```
-ANTHROPIC_API_KEY=  # Required for Claude provider + eval runner
-OPENAI_API_KEY=     # Required for OpenAI provider
-PORT=3001           # Proxy server port (default)
+ANTHROPIC_API_KEY=   # Required for Claude provider + eval runner
+OPENAI_API_KEY=      # Required for OpenAI provider
+GEMINI_API_KEY=      # Required for Gemini provider
+OPENROUTER_API_KEY=  # Required for OpenRouter provider
+PORT=3001            # Proxy server port (default)
 ```
 
 ## Architecture

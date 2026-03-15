@@ -39,6 +39,8 @@
           <select id="select-provider" class="select">
             <option value="claude">Claude (Anthropic)</option>
             <option value="openai">OpenAI</option>
+            <option value="gemini">Gemini (Google)</option>
+            <option value="openrouter">OpenRouter</option>
           </select>
           <select id="select-model" class="select" style="margin-top:6px"></select>
         </section>
@@ -75,6 +77,14 @@
         <label class="field-label">
           OpenAI API Key
           <input id="input-openai-key" type="password" class="text-input" placeholder="sk-..." />
+        </label>
+        <label class="field-label">
+          Gemini API Key
+          <input id="input-gemini-key" type="password" class="text-input" placeholder="AIza..." />
+        </label>
+        <label class="field-label">
+          OpenRouter API Key
+          <input id="input-openrouter-key" type="password" class="text-input" placeholder="sk-or-..." />
         </label>
         <button id="btn-save-keys" class="primary-btn">Save Keys</button>
         <button id="btn-close-settings" class="ghost-btn">Close</button>

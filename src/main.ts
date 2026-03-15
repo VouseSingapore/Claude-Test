@@ -121,7 +121,15 @@ for (const char of characters) {
 
 const MODELS: Record<Provider, string[]> = {
   claude: ['claude-sonnet-4-6', 'claude-opus-4-6', 'claude-haiku-4-5-20251001'],
-  openai: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo']
+  openai: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo'],
+  gemini: ['gemini-2.0-flash', 'gemini-2.0-flash-lite', 'gemini-2.5-pro-preview-03-25'],
+  openrouter: [
+    'mistralai/mistral-nemo',
+    'meta-llama/llama-3.3-70b-instruct',
+    'deepseek/deepseek-r1',
+    'google/gemini-2.0-flash-001',
+    'anthropic/claude-sonnet-4-6'
+  ]
 }
 
 function updateModelOptions() {
@@ -286,7 +294,11 @@ drawerBackdrop.addEventListener('click', closeSettings)
 btnSaveKeys.addEventListener('click', () => {
   const claudeKey = (document.getElementById('input-claude-key') as HTMLInputElement).value
   const openaiKey = (document.getElementById('input-openai-key') as HTMLInputElement).value
+  const geminiKey = (document.getElementById('input-gemini-key') as HTMLInputElement).value
+  const openrouterKey = (document.getElementById('input-openrouter-key') as HTMLInputElement).value
   if (claudeKey) localStorage.setItem('claude_key', claudeKey)
   if (openaiKey) localStorage.setItem('openai_key', openaiKey)
+  if (geminiKey) localStorage.setItem('gemini_key', geminiKey)
+  if (openrouterKey) localStorage.setItem('openrouter_key', openrouterKey)
   closeSettings()
 })
