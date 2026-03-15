@@ -279,6 +279,11 @@ document.addEventListener('click', (e) => {
 // ── Settings drawer ───────────────────────────────────────────────────────────
 
 btnSettings.addEventListener('click', () => {
+  // Populate inputs from saved keys
+  ;(document.getElementById('input-claude-key') as HTMLInputElement).value = localStorage.getItem('claude_key') ?? ''
+  ;(document.getElementById('input-openai-key') as HTMLInputElement).value = localStorage.getItem('openai_key') ?? ''
+  ;(document.getElementById('input-gemini-key') as HTMLInputElement).value = localStorage.getItem('gemini_key') ?? ''
+  ;(document.getElementById('input-openrouter-key') as HTMLInputElement).value = localStorage.getItem('openrouter_key') ?? ''
   settingsDrawer.hidden = false
   drawerBackdrop.hidden = false
 })
@@ -296,9 +301,14 @@ btnSaveKeys.addEventListener('click', () => {
   const openaiKey = (document.getElementById('input-openai-key') as HTMLInputElement).value
   const geminiKey = (document.getElementById('input-gemini-key') as HTMLInputElement).value
   const openrouterKey = (document.getElementById('input-openrouter-key') as HTMLInputElement).value
-  if (claudeKey) localStorage.setItem('claude_key', claudeKey)
-  if (openaiKey) localStorage.setItem('openai_key', openaiKey)
-  if (geminiKey) localStorage.setItem('gemini_key', geminiKey)
-  if (openrouterKey) localStorage.setItem('openrouter_key', openrouterKey)
-  closeSettings()
+  // Save non-empty values; allow clearing by saving empty string if field was shown
+  localStorage.setItem('claude_key', claudeKey)
+  localStorage.setItem('openai_key', openaiKey)
+  localStorage.setItem('gemini_key', geminiKey)
+  localStorage.setItem('openrouter_key', openrouterKey)
+  btnSaveKeys.textContent = 'Saved ✓'
+  setTimeout(() => {
+    btnSaveKeys.textContent = 'Save Keys'
+    closeSettings()
+  }, 800)
 })

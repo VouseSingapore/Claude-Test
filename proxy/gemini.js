@@ -11,7 +11,7 @@ const BASE_URL = 'https://generativelanguage.googleapis.com/v1beta'
  * @param {(delta: string, done: boolean) => void} sendChunk
  */
 export async function streamGemini(opts, sendChunk) {
-  const { model, system, messages, temperature, max_tokens } = opts
+  const { model, system, messages, temperature, max_tokens, apiKey } = opts
 
   // Gemini uses 'model' role instead of 'assistant'
   const contents = messages.map(m => ({
@@ -29,7 +29,7 @@ export async function streamGemini(opts, sendChunk) {
   }
 
   const modelId = model ?? 'gemini-2.0-flash'
-  const url = `${BASE_URL}/models/${modelId}:streamGenerateContent?alt=sse&key=${API_KEY}`
+  const url = `${BASE_URL}/models/${modelId}:streamGenerateContent?alt=sse&key=${apiKey || API_KEY}`
 
   const res = await fetch(url, {
     method: 'POST',

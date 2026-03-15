@@ -11,7 +11,7 @@ const API_KEY = process.env.OPENAI_API_KEY ?? ''
  * @param {(delta: string, done: boolean) => void} sendChunk
  */
 export async function streamOpenAI(opts, sendChunk) {
-  const { model, system, messages, temperature, max_tokens } = opts
+  const { model, system, messages, temperature, max_tokens, apiKey } = opts
 
   const allMessages = [
     { role: 'system', content: system },
@@ -22,7 +22,7 @@ export async function streamOpenAI(opts, sendChunk) {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${API_KEY}`
+      'Authorization': `Bearer ${apiKey || API_KEY}`
     },
     body: JSON.stringify({
       model: model ?? 'gpt-4o',

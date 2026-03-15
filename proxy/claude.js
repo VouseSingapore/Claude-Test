@@ -11,13 +11,13 @@ const API_KEY = process.env.ANTHROPIC_API_KEY ?? ''
  * @param {(delta: string, done: boolean) => void} sendChunk
  */
 export async function streamClaude(opts, sendChunk) {
-  const { model, system, messages, temperature, max_tokens } = opts
+  const { model, system, messages, temperature, max_tokens, apiKey } = opts
 
   const res = await fetch(CLAUDE_API, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-api-key': API_KEY,
+      'x-api-key': apiKey || API_KEY,
       'anthropic-version': '2023-06-01'
     },
     body: JSON.stringify({
