@@ -52,7 +52,7 @@ export class VariableEngine {
 
       if (trimmed.startsWith('getvar::')) {
         const key = trimmed.slice('getvar::'.length)
-        return this.store[key] ?? ''
+        return this.get(key)
       }
 
       if (trimmed.startsWith('roll::')) {
