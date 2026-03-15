@@ -475,7 +475,7 @@ function renderDebugPanel() {
     card.appendChild(summary)
 
     // ── System prompt segments ────────────────────────────────────────
-    const sysSection = mkSection('System Prompt', `~${systemTotal.toLocaleString()} tok`)
+    const { section: sysSection, body: sysList } = mkSection('System Prompt', `~${systemTotal.toLocaleString()} tok`)
     for (const seg of entry.systemSegments) {
       const row = document.createElement('div')
       row.className = 'debug-seg-row'
@@ -485,13 +485,13 @@ function renderDebugPanel() {
       preview.className = 'debug-seg-preview'
       preview.textContent = seg.content.slice(0, 120) + (seg.content.length > 120 ? '…' : '')
       row.appendChild(preview)
-      sysSection.appendChild(row)
+      sysList.appendChild(row)
     }
     card.appendChild(sysSection)
 
     // ── History messages ──────────────────────────────────────────────
     if (entry.history.length > 0) {
-      const histSection = mkSection(`History (${entry.history.length} msg)`, `~${histTotal.toLocaleString()} tok`)
+      const { section: histSection, body: histList } = mkSection(`History (${entry.history.length} msg)`, `~${histTotal.toLocaleString()} tok`)
       for (const m of entry.history) {
         const row = document.createElement('div')
         row.className = 'debug-seg-row'
@@ -500,13 +500,13 @@ function renderDebugPanel() {
         preview.className = 'debug-seg-preview'
         preview.textContent = m.content.slice(0, 100) + (m.content.length > 100 ? '…' : '')
         row.appendChild(preview)
-        histSection.appendChild(row)
+        histList.appendChild(row)
       }
       card.appendChild(histSection)
     }
 
     // ── Current user message ──────────────────────────────────────────
-    const userSection = mkSection('User Message', `~${userTok} tok`)
+    const { section: userSection, body: userList } = mkSection('User Message', `~${userTok} tok`)
     const userRow = document.createElement('div')
     userRow.className = 'debug-seg-row'
     userRow.innerHTML = `<span class="debug-seg-name debug-role-user">user</span><span class="debug-seg-tok">~${userTok} tok</span>`
@@ -514,21 +514,24 @@ function renderDebugPanel() {
     userPreview.className = 'debug-seg-preview'
     userPreview.textContent = entry.userMessage.slice(0, 100) + (entry.userMessage.length > 100 ? '…' : '')
     userRow.appendChild(userPreview)
-    userSection.appendChild(userRow)
+    userList.appendChild(userRow)
     card.appendChild(userSection)
 
     debugContent.appendChild(card)
   }
 }
 
-function mkSection(title: string, tokLabel: string): HTMLElement {
-  const el = document.createElement('div')
-  el.className = 'debug-section'
+function mkSection(title: string, tokLabel: string): { section: HTMLElement; body: HTMLElement } {
+  const section = document.createElement('div')
+  section.className = 'debug-section'
   const h = document.createElement('div')
   h.className = 'debug-section-hdr'
   h.innerHTML = `<span>${title}</span><span class="debug-seg-tok">${tokLabel}</span>`
-  el.appendChild(h)
-  return el
+  section.appendChild(h)
+  const body = document.createElement('div')
+  body.className = 'debug-section-body'
+  section.appendChild(body)
+  return { section, body }
 }
 
 btnDebug.addEventListener('click', () => {

@@ -322,7 +322,9 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
   padding: 7px 12px; background: rgba(255,255,255,.02);
   font-size: 11px; font-weight: 600; text-transform: uppercase;
   letter-spacing: .06em; color: var(--text-muted);
+  position: sticky; top: 0; z-index: 1;
 }
+.debug-section-body { max-height: 300px; overflow-y: auto; }
 
 .debug-seg-row {
   padding: 5px 12px 5px 18px; border-top: 1px solid rgba(255,255,255,.04);
